@@ -17,8 +17,8 @@ def video_process_folder(input_folder, output_folder, processor: VideoProcessor)
         t.set_description(f"Processing {file}")
         if file.endswith('.mp4') or file.endswith('.mkv') or file.endswith('.avi') or file.endswith('.flv'):
             input_path = os.path.join(input_folder, file)
-            output_folder = os.path.join(output_folder, file[:-4])
-            processor.process_video(input_path, output_folder)
+            output_path = os.path.join(output_folder, file[:-4])
+            processor.process_video(input_path, output_path)
             video_lists.append(file)
     logging.info('Folder processing completed.')
     return video_lists

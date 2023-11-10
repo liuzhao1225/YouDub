@@ -34,6 +34,8 @@ def process_folder(folder, tts: TTS_Clone):
     full_wav = []
     if not os.path.exists(os.path.join(folder, 'temp')):
         os.makedirs(os.path.join(folder, 'temp'))
+    
+    previous_end = 0
     for i, line in tqdm(enumerate(transcript)):
         text = line['text']
         start = line['start']
@@ -44,7 +46,12 @@ def process_folder(folder, tts: TTS_Clone):
 
         wav_adjusted = adjust_audio_length(wav, os.path.join(folder, 'temp', f'zh_{i}.wav'), os.path.join(
             folder, 'temp',  f'zh_{i}_adjusted.wav'), end - start)
+        length = len(wav_adjusted)/24000
+        end = start + length
+        if start > previous_end:
+            full_wav.append(np.zeros(( int(24000 * (start - previous_end)),)))
         full_wav.append(wav_adjusted)
+        previous_end = end
     full_wav = np.concatenate(full_wav)
     save_wav(full_wav, os.path.join(folder, f'zh.wav'))
         

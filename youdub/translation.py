@@ -15,10 +15,9 @@ class Translator:
         **注意**：
         - 确保翻译的准确性。
         - 在表达中保持优雅和精致。
-        - 将'text'中的所有数字用中文字符表示。
-        - 将'start'和'end'保留为数字。
+        - 将所有数字用中文字符表示。
         - 在翻译文本中保持JSON结构。
-        请在```json``中输入您的翻译文本。"""
+        请在```json```中输入您的翻译文本。"""
         
     def translate(self, transcipt):
         print(transcipt)
@@ -27,7 +26,7 @@ class Translator:
             model="gpt-4",
             messages=[
                 {"role": "system", "content": self.system_message},
-                {"role": "user", "content": f"```json\n{transcipt}\n```"},
+                {"role": "user", "content": f"```json\n{transcipt}\n```\n{self.system_message}"},
             ]
         )
         response = response.choices[0].message.content

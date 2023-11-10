@@ -16,7 +16,7 @@ def adjust_audio_length(wav, src_path, dst_path,  desired_length: float, sample_
         np.ndarray: Waveform with adjusted length.
     """
     current_length = wav.shape[0] / sample_rate
-    speed_factor = desired_length / current_length
+    speed_factor = min(desired_length / current_length, 1)
     stretch_audio(src_path, dst_path, ratio=speed_factor,
                   sample_rate=sample_rate)
     y, sr = librosa.load(dst_path, sr=sample_rate)
