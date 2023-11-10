@@ -77,7 +77,7 @@ def main(input_folder, output_folder):
             os.makedirs(folder_path)
         translate_from_folder(folder_path, translator)
         audio_process_folder(folder_path, tts)
-        processor.replace_audio(os.path.join(input_folder, video), os.path.join(folder_path, 'zh.wav'), os.path.join(folder_path, video))
+        processor.replace_audio(os.path.join(input_folder, video), os.path.join(folder_path, 'zh.wav'),  os.path.join(folder_path, 'zh.json'), os.path.join(folder_path, video))
 if __name__ == '__main__':
     input_folder = r'input'
     output_folder = r'output'
