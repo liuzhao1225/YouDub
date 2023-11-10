@@ -161,4 +161,6 @@ cython_debug/
 
 input/*
 output/*
-models/*
+models/ASR/*
+models/TTS/*
+playground/
