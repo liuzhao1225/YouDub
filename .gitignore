@@ -167,9 +167,13 @@ models/
 playground/
 finished/
 todo/
+# audio
 *.mp3
+*.wav
+# video
 *.mp4
-*.pth
 *.mkv
+# model
+*.pth
 
 

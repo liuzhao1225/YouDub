@@ -4,28 +4,10 @@ import json
 import librosa
 import numpy as np
 from tqdm import tqdm
+from youdub.tts_paddle import TTS_Clone
 from youdub.asr_whisper import VideoProcessor
 from youdub.translation import Translator
-from youdub.tts_xttsv2 import TTS_Clone
 from youdub.utils import save_wav, adjust_audio_length
-
-# def video_process_folder(input_folder, output_folder, processor: VideoProcessor):
-#     logging.info('Processing folder...')
-#     files = os.listdir(input_folder)
-#     t = tqdm(files, desc="Processing files")
-#     video_lists = []
-#     for file in t:
-#         t.set_description(f"Processing {file}")
-#         if file.endswith('.mp4') or file.endswith('.mkv') or file.endswith('.avi') or file.endswith('.flv'):
-#             input_path = os.path.join(input_folder, file)
-#             output_path = os.path.join(output_folder, file[:-4])
-            
-#             if not os.path.exists(output_folder):
-#                 os.makedirs(output_folder)
-#             processor.process_video(input_path, output_path)
-#             video_lists.append(file)
-#     logging.info('Folder processing completed.')
-#     return video_lists
     
 def audio_process_folder(folder, tts: TTS_Clone):
     logging.info(f'TTS processing folder {folder}...')
@@ -167,7 +149,7 @@ def main(input_folder, output_folder):
             output_path, 'zh.wav'),  os.path.join(output_path, 'transcript.json'), os.path.join(output_path, file))
 if __name__ == '__main__':
     input_folder = r'input'
-    # input_folder = r'test'
+    input_folder = r'test'
     output_folder = r'output'
     main(input_folder, output_folder)
     

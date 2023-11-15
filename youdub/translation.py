@@ -12,7 +12,7 @@ system_message = \
 - 遵循中文的语序原则，即定语放在被修饰的名词前，状语放在谓语前，以保持中文的自然语感。
 - 鼓励用自己的话重新诠释文本，避免逐字逐句的直译。采用意译而非直译的方式，用你的话语表达原文的精髓。
 - 长句子可以分成多个短句子，便于观众理解。
-- 所有数字和字母都应使用中文表示，例如六十岁，一百万年。
+- 保留专有名词的原文，如人名、地名、机构名等。
 请将您的翻译文本放入以下```代码块```中。
 """   
 class Translator:
@@ -24,8 +24,8 @@ class Translator:
     def translate(self, transcipt):
         print('翻译中...')
         response = self.client.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[{"role": "system", "content": 'You are a summarizer about video transcripts.'}] + [{"role": "user", "content": f"Summarize in very concise words about what is this video is about: {' '.join(transcipt)}"},]
+                    model="gpt-4",
+            messages=[{"role": "system", "content": 'You are a summarizer about video transcripts.'}] + [{"role": "user", "content": f"Your summary should be informative and factual,covering the most important aspects of the topic. Summarize  what is this video is about: {' '.join(transcipt)}"},]
                 )
         summary = response.choices[0].message.content
         print(summary)
@@ -61,7 +61,7 @@ class Translator:
                 except:
                     print('翻译失败')
                     print(response)
-                    retry_message += '\n注意：所有数字和字母都应使用中文表示，例如六十岁，一百万年！'
+                    retry_message += '请将您的翻译文本放入以下```代码块```中。'
         return final_result
 
 
