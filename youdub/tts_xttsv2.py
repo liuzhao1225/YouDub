@@ -25,6 +25,7 @@ class TTS_Clone:
         wav = self.tts.tts(
                 text=text, speaker_wav=speaker_wav, language=self.language)
         wav = np.array(wav)
+        wav /= np.max(np.abs(wav))
         return wav
 
 def process_folder(folder, tts: TTS_Clone):
