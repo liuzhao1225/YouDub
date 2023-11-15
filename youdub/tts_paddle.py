@@ -1,7 +1,6 @@
 
 import os
 from paddlespeech.cli.tts import TTSExecutor
-from tqdm import tqdm
 import numpy as np
 import json
 import logging
@@ -26,7 +25,7 @@ class TTS_Clone:
             lang=self.language,
             output=output,
             use_onnx=True)
-        # print(f'Wave file has been generated: {output}')
+        print(f'{output}: {text}')
         
         return self.tts._outputs['wav']
 
@@ -39,7 +38,7 @@ def process_folder(folder, tts: TTS_Clone):
         os.makedirs(os.path.join(folder, 'temp'))
     
     previous_end = 0
-    for i, line in tqdm(enumerate(transcript)):
+    for i, line in enumerate(transcript):
         text = line['text']
         start = line['start']
         end = line['end']

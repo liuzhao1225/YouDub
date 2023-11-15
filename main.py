@@ -5,10 +5,10 @@ import librosa
 import numpy as np
 from tqdm import tqdm
 from youdub.tts_paddle import TTS_Clone
-from youdub.asr_whisper import VideoProcessor
+from youdub.asr_whisper import VideoProcessor, replace_audio
 from youdub.translation import Translator
 from youdub.utils import save_wav, adjust_audio_length
-    
+from multiprocessing import Process
 def audio_process_folder(folder, tts: TTS_Clone):
     logging.info(f'TTS processing folder {folder}...')
     with open(os.path.join(folder, 'zh.json'), 'r', encoding='utf-8') as f:
@@ -17,7 +17,7 @@ def audio_process_folder(folder, tts: TTS_Clone):
     if not os.path.exists(os.path.join(folder, 'temp')):
         os.makedirs(os.path.join(folder, 'temp'))
         
-    for i, line in tqdm(enumerate(transcript)):
+    for i, line in enumerate(transcript):
         text = line['text']
         # start = line['start']
         start = line['start']
@@ -27,12 +27,12 @@ def audio_process_folder(folder, tts: TTS_Clone):
                 (full_wav, np.zeros((int(24000 * (start - last_end)),))))
         start = len(full_wav)/24000
         end = line['end']
-        wav = tts.inference(text, os.path.join(folder, 'en_Vocals.wav'))
-        save_wav(wav, os.path.join(folder, 'temp', f'zh_{i}.wav'))
+        wav = tts.inference(text, os.path.join(folder, 'temp', f'zh_{i}.wav'))
+        # save_wav(wav, )
         wav_adjusted = adjust_audio_length(wav, os.path.join(folder, 'temp', f'zh_{i}.wav'), os.path.join(
             folder, 'temp',  f'zh_{i}_adjusted.wav'), end - start)
         
-        
+        wav_adjusted /= wav_adjusted.max()
         full_wav = np.concatenate(
             (full_wav, wav_adjusted))
     # load os.path.join(folder, 'en_Instruments.wav')
@@ -135,6 +135,7 @@ def main(input_folder, output_folder):
         t.set_description(f"Processing {file}")
         print('='*50)
         if file.endswith('.mp4') or file.endswith('.mkv') or file.endswith('.avi') or file.endswith('.flv'):
+            video_lists.append(file)
             input_path = os.path.join(input_folder, file)
             output_path = os.path.join(output_folder, file[:-4])
             if not os.path.exists(output_path):
@@ -145,11 +146,16 @@ def main(input_folder, output_folder):
         # logging.info(f'Processing {video}...')
         translate_from_folder(output_path, translator)
         audio_process_folder(output_path, tts)
-        processor.replace_audio(os.path.join(input_folder, file), os.path.join(
-            output_path, 'zh.wav'),  os.path.join(output_path, 'transcript.json'), os.path.join(output_path, file))
+        process = Process(target=replace_audio, args=(os.path.join(input_folder, file), os.path.join(
+            output_path, 'zh.wav'),  os.path.join(output_path, 'transcript.json'), os.path.join(output_path, file)))
+        process.start()
+        print('='*50)
+
+    print(f'Video processing finished. {len(video_lists)} videos processed.')
+    print(video_lists)
 if __name__ == '__main__':
     input_folder = r'input'
-    input_folder = r'test'
+    # input_folder = r'test'
     output_folder = r'output'
     main(input_folder, output_folder)
     
