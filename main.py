@@ -5,10 +5,12 @@ import librosa
 import numpy as np
 from tqdm import tqdm
 from youdub.tts_paddle import TTS_Clone
-from youdub.asr_whisper import VideoProcessor, replace_audio
+from youdub.asr_whisper import VideoProcessor
+from youdub.video_postprocess import replace_audio
 from youdub.translation import Translator
 from youdub.utils import save_wav, adjust_audio_length
 from multiprocessing import Process
+
 def audio_process_folder(folder, tts: TTS_Clone):
     logging.info(f'TTS processing folder {folder}...')
     with open(os.path.join(folder, 'zh.json'), 'r', encoding='utf-8') as f:
@@ -29,14 +31,18 @@ def audio_process_folder(folder, tts: TTS_Clone):
         end = line['end']
         wav = tts.inference(text, os.path.join(folder, 'temp', f'zh_{i}.wav'))
         # save_wav(wav, )
-        wav_adjusted = adjust_audio_length(wav, os.path.join(folder, 'temp', f'zh_{i}.wav'), os.path.join(
+        wav_adjusted, adjusted_length = adjust_audio_length(wav, os.path.join(folder, 'temp', f'zh_{i}.wav'), os.path.join(
             folder, 'temp',  f'zh_{i}_adjusted.wav'), end - start)
         
         wav_adjusted /= wav_adjusted.max()
+        line['end'] = line['start'] + adjusted_length
         full_wav = np.concatenate(
             (full_wav, wav_adjusted))
     # load os.path.join(folder, 'en_Instruments.wav')
     # combine with full_wav (the length of the two audio might not be equal)
+    transcript = split_text(transcript, punctuations=['，', '；'])
+    with open(os.path.join(folder, 'transcript.json'), 'w', encoding='utf-8') as f:
+        json.dump(transcript, f, ensure_ascii=False, indent=4)
     instruments_wav, sr = librosa.load(
         os.path.join(folder, 'en_Instruments.wav'), sr=24000)
     
@@ -97,20 +103,18 @@ def split_text(input_data,
 
 def translate_from_folder(folder, translator: Translator):
     with open(os.path.join(folder, 'en.json'), mode='r', encoding='utf-8') as f:
-        transcipt = json.load(f)
-    _transcript = [sentence['text'] for sentence in transcipt if sentence['text']]
+        transcript = json.load(f)
+    _transcript = [sentence['text'] for sentence in transcript if sentence['text']]
     result = ['']
     while len(result) != len(_transcript):
         result = translator.translate(_transcript)
     for i, sentence in enumerate(result):
-        transcipt[i]['text'] = sentence
+        transcript[i]['text'] = sentence
         
-    transcipt = split_text(transcipt)
+    transcript = split_text(transcript)
     with open(os.path.join(folder, 'zh.json'), 'w', encoding='utf-8') as f:
-        json.dump(transcipt, f, ensure_ascii=False, indent=4)
-    transcipt = split_text(transcipt, punctuations=['，'])
-    with open(os.path.join(folder, 'transcript.json'), 'w', encoding='utf-8') as f:
-        json.dump(transcipt, f, ensure_ascii=False, indent=4)
+        json.dump(transcript, f, ensure_ascii=False, indent=4)
+    
         
 def main(input_folder, output_folder):
     print('='*50)
@@ -140,10 +144,10 @@ def main(input_folder, output_folder):
             output_path = os.path.join(output_folder, file[:-4])
             if not os.path.exists(output_path):
                 os.makedirs(output_path)
+                pass
             processor.process_video(input_path, output_path)
         else:
             continue
-        # logging.info(f'Processing {video}...')
         translate_from_folder(output_path, translator)
         audio_process_folder(output_path, tts)
         process = Process(target=replace_audio, args=(os.path.join(input_folder, file), os.path.join(
