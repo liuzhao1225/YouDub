@@ -54,5 +54,3 @@
 ## 支持与联系方式
 如需帮助或有任何疑问，请通过 [GitHub Issues](https://github.com/liuzhao1225/YouDub/issues) 联系我们。
 
----
-这是针对 `YouDub` 项目的中文 README 文档，已根据您的要求将许可协议更新为 Apache License 2.0。如果需要更多修改，请随时通知。
