@@ -30,6 +30,20 @@
 - 准备需要翻译的视频文件并放置于输入文件夹。
 - 指定输出文件夹以接收处理后的视频。
 - 系统将自动进行语音识别、翻译、声音克隆和视频处理。
+- 
+## 技术细节
+
+### AI 语音识别
+目前，我们的 AI 语音识别功能是基于 [Whisper](https://github.com/openai/whisper) 实现的。Whisper 是 OpenAI 开发的一款强大的语音识别系统，能够精确地将语音转换为文本。考虑到未来的效率和性能提升，我们计划评估并可能迁移到 [WhisperX](https://github.com/m-bain/whisperX)，这是一个更高效的语音识别系统，旨在进一步提高处理速度和准确度。
+
+### 大型语言模型翻译
+我们的翻译功能支持使用 OpenAI API 提供的各种模型，包括官方的 GPT 模型。此外，我们也在探索使用类似 [api-for-open-llm](https://github.com/xusenlinzy/api-for-open-llm) 这样的项目，以便更灵活地整合和利用不同的大型语言模型进行翻译工作。
+
+### AI 声音克隆
+声音克隆方面，我们目前使用的是 [Paddle Speech](https://github.com/PaddlePaddle/PaddleSpeech)。虽然 Paddle Speech 提供了高质量的语音合成能力，但目前尚无法在同一句话中同时生成中文和英文。在此之前，我们也考虑过使用 [Coqui AI TTS](https://github.com/coqui-ai/TTS)，它能够进行高效的声音克隆，但同样面临一些限制。
+
+### 视频处理
+我们的视频处理功能强调音视频的同步处理，例如确保音频与视频画面的完美对齐，以及生成准确的字幕，从而为用户提供一个无缝的观看体验。
 
 ## 贡献指南
 欢迎对 `YouDub` 进行贡献。您可以通过 GitHub Issue 或 Pull Request 提交改进建议或报告问题。
