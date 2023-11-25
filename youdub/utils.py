@@ -16,7 +16,7 @@ def adjust_audio_length(wav, src_path, dst_path,  desired_length: float, sample_
         np.ndarray: Waveform with adjusted length.
     """
     current_length = wav.shape[0] / sample_rate
-    speed_factor = max(min(desired_length / current_length, 0.9), 0.7)
+    speed_factor = max(min(desired_length / current_length * 0.95, 0.95), 0.85)
     desired_length = current_length * speed_factor
     stretch_audio(src_path, dst_path, ratio=speed_factor,
                   sample_rate=sample_rate)
@@ -34,3 +34,15 @@ def save_wav(wav: np.ndarray, path: str, sample_rate: int = 24000) -> None:
     """
     wav_norm = wav * (32767 / max(0.01, np.max(np.abs(wav))))
     wavfile.write(path, sample_rate, wav_norm.astype(np.int16))
+
+def load_wav(wav_path: str, sample_rate: int = 24000) -> np.ndarray:
+    """Load waveform from a file using librosa.
+
+    Args:
+        wav_path (str): Path to a file to load.
+        sample_rate (int, optional): Sampling rate used for loading the file. Defaults to 24000.
+
+    Returns:
+        np.ndarray: Waveform with float values in range [-1, 1].
+    """
+    return librosa.load(wav_path, sr=sample_rate)[0]

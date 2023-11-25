@@ -1,15 +1,19 @@
 import os
 import logging
 import json
+import re
 import librosa
 import numpy as np
 from tqdm import tqdm
 from youdub.tts_paddle import TTS_Clone
-from youdub.asr_whisper import VideoProcessor
-from youdub.video_postprocess import replace_audio
+from youdub.asr_whisperX import VideoProcessor
+from youdub.video_postprocess import replace_audio_ffmpeg
 from youdub.translation import Translator
 from youdub.utils import save_wav, adjust_audio_length
 from multiprocessing import Process
+
+allowed_chars = '[^a-zA-Z0-9_ .]'
+
 
 def audio_process_folder(folder, tts: TTS_Clone):
     logging.info(f'TTS processing folder {folder}...')
@@ -28,11 +32,17 @@ def audio_process_folder(folder, tts: TTS_Clone):
             full_wav = np.concatenate(
                 (full_wav, np.zeros((int(24000 * (start - last_end)),))))
         start = len(full_wav)/24000
+        line['start'] = start
         end = line['end']
-        wav = tts.inference(text, os.path.join(folder, 'temp', f'zh_{i}.wav'))
+        if os.path.exists(os.path.join(folder, 'temp', f'zh_{str(i).zfill(3)}.wav')):
+            wav = librosa.load(os.path.join(
+                folder, 'temp', f'zh_{str(i).zfill(3)}.wav'), sr=24000)[0]
+        else:
+            wav = tts.inference(text, os.path.join(
+                folder, 'temp', f'zh_{str(i).zfill(3)}.wav'))
         # save_wav(wav, )
-        wav_adjusted, adjusted_length = adjust_audio_length(wav, os.path.join(folder, 'temp', f'zh_{i}.wav'), os.path.join(
-            folder, 'temp',  f'zh_{i}_adjusted.wav'), end - start)
+        wav_adjusted, adjusted_length = adjust_audio_length(wav, os.path.join(folder, 'temp', f'zh_{str(i).zfill(3)}.wav'), os.path.join(
+            folder, 'temp',  f'zh_{str(i).zfill(3)}_adjusted.wav'), end - start)
         
         wav_adjusted /= wav_adjusted.max()
         line['end'] = line['start'] + adjusted_length
@@ -83,7 +93,7 @@ def split_text(input_data,
             # If the character is a punctuation, split the sentence
             if not is_punctuation(char) and i != len(text) - 1:
                 continue
-            if i - sentence_start < 5:
+            if i - sentence_start < 5 and i != len(text) - 1:
                     continue
             sentence = text[sentence_start:i+1]
             sentence_end = start + duration_per_char * len(sentence)
@@ -139,6 +149,10 @@ def main(input_folder, output_folder):
         t.set_description(f"Processing {file}")
         print('='*50)
         if file.endswith('.mp4') or file.endswith('.mkv') or file.endswith('.avi') or file.endswith('.flv'):
+            new_filename = re.sub(allowed_chars, '', file)
+            os.rename(os.path.join(input_folder, file),
+                      os.path.join(input_folder, new_filename))
+            file = new_filename
             video_lists.append(file)
             input_path = os.path.join(input_folder, file)
             output_path = os.path.join(output_folder, file[:-4])
@@ -148,21 +162,17 @@ def main(input_folder, output_folder):
             processor.process_video(input_path, output_path)
         else:
             continue
-        translate_from_folder(output_path, translator)
+        if not os.path.exists(os.path.join(output_path, 'zh.json')):
+            translate_from_folder(output_path, translator)
         audio_process_folder(output_path, tts)
-        process = Process(target=replace_audio, args=(os.path.join(input_folder, file), os.path.join(
-            output_path, 'zh.wav'),  os.path.join(output_path, 'transcript.json'), os.path.join(output_path, file)))
-        process.start()
+        replace_audio_ffmpeg(os.path.join(input_folder, file), os.path.join(
+            output_path, 'zh.wav'),  os.path.join(output_path, 'transcript.json'), os.path.join(output_path, file))
         print('='*50)
 
     print(f'Video processing finished. {len(video_lists)} videos processed.')
     print(video_lists)
 if __name__ == '__main__':
     input_folder = r'input'
-    # input_folder = r'test'
+    input_folder = r'test'
     output_folder = r'output'
     main(input_folder, output_folder)
-    
-    # with open(r'output\Kurzgesagt Channel Trailer/zh.json', 'r', encoding='utf-8') as f:
-    #     transcript = json.load(f)
-    # print(split_text(transcript))
