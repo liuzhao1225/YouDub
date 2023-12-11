@@ -197,7 +197,7 @@ if __name__ == '__main__':
     
     series = 'TED_Ed'
     # series = 'z_Others'
-    # series = r'test'
+    series = r'test'
     # series = 'Kurzgsaget'
     input_folder = os.path.join(r'input', series)
     output_folder = os.path.join(r'output', series)

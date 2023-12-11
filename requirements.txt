@@ -1,5 +1,4 @@
 audiostretchy==1.3.5
-demucs==4.0.1
 librosa
 loguru==0.7.2
 modelscope==1.10.0
@@ -12,4 +11,6 @@ python-dotenv==1.0.0
 Requests==2.31.0
 scipy==1.11.4
 tqdm==4.64.1
-git+https://github.com/m-bain/whisperx.git
+openai-whisper
+git+https://github.com/facebookresearch/demucs#egg=demucs # demucs
+git+https://github.com/m-bain/whisperx.git # whisperx
