@@ -1,7 +1,8 @@
+
 # YouDub: 优质视频中文化工具
 
 ## 简介
-`YouDub` 是一个创新的开源工具，专注于将 YouTube 等平台的优质视频翻译和配音为中文版本。此工具融合了先进的 AI 技术，包括语音识别、大型语言模型翻译以及 AI 声音克隆技术，为中文用户提供具有原始 YouTuber 音色的中文配音视频。
+`YouDub` 是一个创新的开源工具，专注于将 YouTube 等平台的优质视频翻译和配音为中文版本。此工具融合了先进的 AI 技术，包括语音识别、大型语言模型翻译以及 AI 声音克隆技术，为中文用户提供具有原始 YouTuber 音色的中文配音视频。更多示例和信息，欢迎访问我的[bilibili视频主页](https://space.bilibili.com/1263732318)。
 
 ## 主要特点
 - **AI 语音识别**：有效转换视频中的语音为文字。
@@ -20,6 +21,8 @@
    cd YouDub
    pip install -r requirements.txt
    ```
+   如果出现 `paddlespeech` 相关的依赖错误，可以访问 [PaddleSpeech 官方网站](https://github.com/PaddlePaddle/PaddleSpeech#installation) 获取安装指南。
+
    默认安装为 CPU 版本的 PyTorch 如果你需要手动安装特定 CUDA 版本的 PyTorch，可以参考以下步骤：
    首先，根据你的环境和 PyTorch 的版本，从 [PyTorch 官方网站](https://pytorch.org/) 获取适用的安装命令。例如，如果你的 CUDA 版本是 11.8，你可以使用如下命令安装 PyTorch：
    ```bash
