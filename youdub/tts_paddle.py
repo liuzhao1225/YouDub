@@ -1,10 +1,12 @@
 
-import os
+import os, sys
+sys.path.append(os.getcwd())
 from paddlespeech.cli.tts import TTSExecutor
 import numpy as np
 import json
 import logging
-from .utils import save_wav, adjust_audio_length
+
+from youdub.utils import save_wav, adjust_audio_length
 
 
 
@@ -58,6 +60,6 @@ def process_folder(folder, tts: TTS_Clone):
 
 if __name__ == '__main__':
     tts = TTS_Clone()
-    process_folder(r'output\Kurzgesagt Channel Trailer', tts)
+    process_folder(r'output\Why_The_War_on_Drugs_Is_a_Huge_Failure', tts)
     
     

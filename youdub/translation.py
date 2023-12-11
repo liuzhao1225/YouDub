@@ -11,25 +11,15 @@ openai.api_base = os.getenv('OPENAI_API_BASE', 'https://api.openai.com/v1')
 system_message = \
 """请你扮演科普专家的角色。这是一个为视频配音设计的翻译任务，将各种语言精准而优雅地转化为尽量简短的中文。请在翻译时避免生硬的直译，而是追求自然流畅、贴近原文而又不失文学韵味的表达。在这个过程中，请特别注意维护中文特有的语序和句式结构，使翻译文本既忠于原意又符合中文的表达习惯。
 **注意事项**：
-- 紧密关注上下文的逻辑关系，确保翻译的连贯性和准确性。
-- 遵循中文的语序原则，即定语放在被修饰的名词前，状语放在谓语前，以保持中文的自然语感。
 - 鼓励用自己的话重新诠释文本，避免逐字逐句的直译。采用意译而非直译的方式，用你的话语表达原文的精髓。
+- 长句子可以分成多个短句子，便于观众理解。
 - 保留专有名词的原文，如人名、地名、机构名等。
 - 化学式用中文表示，例如CO2说二氧化碳，H2O说水。
-- 长句子可以分成多个短句子，便于观众理解。
-- 使用中文字符。
-- 严格遵循回答格式。
+- 数学公式用中文表示，例如x2或x^2或x²说x的平方，a+b说a加b。
+- 严格遵循回答格式，将翻译结果放入"引号"中。
 """   
 
-caution = """**注意事项**：
-- 紧密关注上下文的逻辑关系，确保翻译的连贯性和准确性。
-- 遵循中文的语序原则，即定语放在被修饰的名词前，状语放在谓语前，以保持中文的自然语感。
-- 鼓励用自己的话重新诠释文本，避免逐字逐句的直译。采用意译而非直译的方式，用你的话语表达原文的精髓。
-- 保留专有名词的原文，如人名、地名、机构名等。
-- 化学式用中文表示，例如CO2说二氧化碳，H2O说水。
-- 长句子可以分成多个短句子，便于观众理解。
-- 使用中文字符。
-- 严格遵循回答格式。"""
+caution = """请在翻译时避免生硬的直译，而是追求自然流畅、贴近原文而又不失文学韵味的表达。请特别注意维护中文特有的语序和句式结构，使翻译文本既忠于原意又符合中文的表达习惯。翻译尽量简短且正确。特别注意，数学公式用中文表示，例如x2或x^2说x的平方，a+b说a加b。"""
 
 prefix = '中文：'
 class Translator:
@@ -73,12 +63,12 @@ class Translator:
             while not success:
                 messages = [{"role": "system", "content": summary + '\n' + self.system_message}] + self.fixed_messages + \
                     self.messages[-20:] + [{"role": "user",
-                                            "content": f'{caution}{retry_message}请按照回答格式翻译成中文："{sentence}"'},]
+                                            "content": f'{caution}{retry_message}\n请按照```"回答格式"```翻译成中文："{sentence}"\n'},]
                 try:
                     response = openai.ChatCompletion.create(
                     model="gpt-3.5-turbo",
                     messages=messages,
-                    temperature=0.5,
+                    temperature=0.2,
                     timeout=60,
                     )
                     response = response.choices[0].message.content
@@ -87,6 +77,8 @@ class Translator:
                         result = matches[-1][0].replace("'", '"').strip()
                         result = re.sub(r'\（[^)]*\）', '', result)
                         result = result.replace('...', '，')
+                        result = re.sub(r'(?<=\d),(?=\d)', '', result)
+                        result = result.replace('²', '的平方').replace('————', '：').replace('——', '：')
                     else:
                         result = None
                         raise Exception('没有找到相应格式的翻译结果')
@@ -97,6 +89,7 @@ class Translator:
                             {'role': 'assistant', 'content': f'{prefix}"{result}"'})
                         print(sentence)
                         print(response)
+                        print(f'最终结果：{result}')
                         print('='*50)
                         final_result.append(result)
                         success = True
@@ -104,9 +97,7 @@ class Translator:
                     print(response)
                     print(e)
                     print('翻译失败')
-                    retry_message += f'严格遵循回答格式，将翻译结果放入"引号"中，例如，请翻译成中文："Hello!"，{prefix}"你好！"\n'
-                    time.sleep(0.5)
-                finally:
+                    retry_message += f'严格遵循回答格式，将翻译结果放入"引号"中，例如，请翻译成中文："Hello!"，你的回答应该是```{prefix}"你好！"```\n'
                     time.sleep(0.5)
         return final_result
 
@@ -114,10 +105,11 @@ class Translator:
         
 if __name__ == '__main__':
     import json
-    output_folder = r"output\An Antidote to Dissatisfaction"
+    output_folder = r"output\z_Others\1hr_Talk_Intro_to_Large_Language_Models"
     with open(os.path.join(output_folder, 'en.json'), 'r', encoding='utf-8') as f:
         transcript = json.load(f)
     transcript = [sentence['text'] for sentence in transcript if sentence['text']]
+    # transcript = ['毕达哥拉斯的公式是a2+b2=c2']
     # transcript = ["Humans are apes with smartphones, living on a tiny moist rock, which is speeding around a burning sphere a million times bigger than itself.", "But our star is only one in billions in a milky way, which itself is only one in billions of galaxies.", "Everything around us is filled with complexity, but usually we don't notice, because being a human takes up a lot of time.", "So we try to explain the universe and our existence one video at a time.", "What is life? Are there aliens? What happens if you step on a black hole?", "If you want to find out, you should click here and subscribe to the Kurzgesagt In A Nutshell YouTube channel."]
     print(transcript)
     translator = Translator()

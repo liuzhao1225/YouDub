@@ -2,18 +2,27 @@ import os
 import logging
 import json
 import re
+import time
 import librosa
 import numpy as np
 from tqdm import tqdm
-from youdub.tts_paddle import TTS_Clone
+from youdub.tts_bytedance import TTS_Clone
 from youdub.asr_whisperX import VideoProcessor
 from youdub.video_postprocess import replace_audio_ffmpeg
-from youdub.translation import Translator
+from youdub.translation_unsafe import Translator
 from youdub.utils import save_wav, adjust_audio_length
 from multiprocessing import Process
-
+import re
 allowed_chars = '[^a-zA-Z0-9_ .]'
 
+
+def add_space_before_capitals(text):
+    # 使用正则表达式查找所有的大写字母，并在它们前面加上空格
+    # 正则表达式说明：(?<!^) 表示如果不是字符串开头，则匹配，[A-Z] 匹配任何大写字母
+    text = re.sub(r'(?<!^)([A-Z])', r' \1', text)
+    # 使用正则表达式在字母和数字之间插入空格
+    text = re.sub(r'(?<=[a-zA-Z])(?=\d)|(?<=\d)(?=[a-zA-Z])', ' ', text)
+    return text
 
 def audio_process_folder(folder, tts: TTS_Clone):
     logging.info(f'TTS processing folder {folder}...')
@@ -38,8 +47,9 @@ def audio_process_folder(folder, tts: TTS_Clone):
             wav = librosa.load(os.path.join(
                 folder, 'temp', f'zh_{str(i).zfill(3)}.wav'), sr=24000)[0]
         else:
-            wav = tts.inference(text, os.path.join(
-                folder, 'temp', f'zh_{str(i).zfill(3)}.wav'))
+            wav = tts.inference(add_space_before_capitals(text), os.path.join(
+                folder, 'temp', f'zh_{str(i).zfill(3)}.wav'), speaker=line.get('speaker', 'SPEAKER_00'))
+            time.sleep(0.1)
         # save_wav(wav, )
         wav_adjusted, adjusted_length = adjust_audio_length(wav, os.path.join(folder, 'temp', f'zh_{str(i).zfill(3)}.wav'), os.path.join(
             folder, 'temp',  f'zh_{str(i).zfill(3)}_adjusted.wav'), end - start)
@@ -50,7 +60,7 @@ def audio_process_folder(folder, tts: TTS_Clone):
             (full_wav, wav_adjusted))
     # load os.path.join(folder, 'en_Instruments.wav')
     # combine with full_wav (the length of the two audio might not be equal)
-    transcript = split_text(transcript, punctuations=['，', '；'])
+    transcript = split_text(transcript, punctuations=['，', '；', '：'])
     with open(os.path.join(folder, 'transcript.json'), 'w', encoding='utf-8') as f:
         json.dump(transcript, f, ensure_ascii=False, indent=4)
     instruments_wav, sr = librosa.load(
@@ -67,8 +77,10 @@ def audio_process_folder(folder, tts: TTS_Clone):
         full_wav = np.pad(full_wav, (0, len_instruments_wav - len_full_wav), mode='constant')
     # 合并两个音频
     full_wav /= np.max(np.abs(full_wav))
+    save_wav(full_wav, os.path.join(folder, f'zh_Vocals.wav'))
     instruments_wav /= np.max(np.abs(instruments_wav))
-    combined_wav = full_wav + instruments_wav
+    instrument_coefficient = 1.2
+    combined_wav = full_wav + instruments_wav*instrument_coefficient
     save_wav(combined_wav, os.path.join(folder, f'zh.wav'))
 
 
@@ -121,18 +133,25 @@ def translate_from_folder(folder, translator: Translator):
     for i, sentence in enumerate(result):
         transcript[i]['text'] = sentence
         
-    transcript = split_text(transcript)
+    # transcript = split_text(transcript) # 使用whisperX后，会自动分句，所以不再需要手动分句。同时避免了将`“你好。”`分为`“你好。`和`”`的情况
     with open(os.path.join(folder, 'zh.json'), 'w', encoding='utf-8') as f:
         json.dump(transcript, f, ensure_ascii=False, indent=4)
     
         
-def main(input_folder, output_folder):
+def main(input_folder, output_folder, diarize=False):
+    
     print('='*50)
     print('Initializing...')
+    if diarize:
+        print('Diarization enabled.')
     print('='*50)
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
-    processor = VideoProcessor()
+    if not os.path.exists(os.path.join(output_folder, '0_to_upload')):
+        os.makedirs(os.path.join(output_folder, '0_to_upload'))
+    if not os.path.exists(os.path.join(output_folder, '0_finished')):
+        os.makedirs(os.path.join(output_folder, '0_finished'))
+    processor = VideoProcessor(diarize=diarize)
     translator = Translator()
     tts = TTS_Clone()
     
@@ -150,6 +169,8 @@ def main(input_folder, output_folder):
         print('='*50)
         if file.endswith('.mp4') or file.endswith('.mkv') or file.endswith('.avi') or file.endswith('.flv'):
             new_filename = re.sub(allowed_chars, '', file)
+            new_filename = re.sub(r'\s+', ' ', new_filename)
+            # new_filename = new_filename.strip().replace(' ', '_')
             os.rename(os.path.join(input_folder, file),
                       os.path.join(input_folder, new_filename))
             file = new_filename
@@ -172,7 +193,12 @@ def main(input_folder, output_folder):
     print(f'Video processing finished. {len(video_lists)} videos processed.')
     print(video_lists)
 if __name__ == '__main__':
-    input_folder = r'input'
-    input_folder = r'test'
-    output_folder = r'output'
-    main(input_folder, output_folder)
+    diarize = False
+    
+    series = 'TED_Ed'
+    # series = 'z_Others'
+    # series = r'test'
+    # series = 'Kurzgsaget'
+    input_folder = os.path.join(r'input', series)
+    output_folder = os.path.join(r'output', series)
+    main(input_folder, output_folder, diarize=diarize)

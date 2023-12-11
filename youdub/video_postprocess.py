@@ -51,12 +51,16 @@ def replace_audio_ffmpeg(input_video: str, input_audio: str, input_subtitles: st
     # Prepare a list to hold FFmpeg commands
     commands = []
 
-    # FFmpeg command to replace audio, add subtitles, and set output frame rate
-    commands.append(f'ffmpeg -i "{input_video}" -i "{input_audio}" -vf "subtitles={srt_path}:force_style=\'FontName=Arial,FontSize=20,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2,WrapStyle=2\'" -c:v libx264 -r {fps} -c:a aac -map 0:v:0 -map 1:a:0 "{tmp}" -y'.replace('\\', '/'))
-
     # FFmpeg command to speed up the video by 1.05 times
-    commands.append(
-        f'ffmpeg -i "{tmp}" -vf "setpts=0.94999999999*PTS" -af "atempo=1.05263157895" -c:v libx264 -c:a aac "{output_path}" -y'.replace('\\', '/'))
+    speed_up = 1.05
+    
+    if speed_up == 1:
+        tmp = output_path
+    commands.append(f'ffmpeg -i "{input_video}" -i "{input_audio}" -vf "subtitles={srt_path}:force_style=\'FontName=Arial,FontSize=20,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2,WrapStyle=2\'" -c:v libx264 -r {fps} -c:a aac -map 0:v:0 -map 1:a:0 "{tmp}" -y'.replace('\\', '/'))
+    
+    if speed_up != 1:
+        commands.append(
+            f'ffmpeg -i "{tmp}" -vf "setpts={1/speed_up}*PTS" -af "atempo={speed_up}" -c:v libx264 -c:a aac "{output_path}" -y'.replace('\\', '/'))
 
     # Command to delete the temporary file
     commands.append(f'del "{tmp}"')

@@ -84,6 +84,7 @@ class Translator:
             }
             # print(messages)
             while not success:
+                time.sleep(0.1)
                 messages = [{"role": "system", "content": summary + '\n' + self.system_message}] + self.fixed_messages + \
                     self.messages[-20:] + [{"role": "user",
                                             "content": retry_message + '```json' + json.dumps(prompt, ensure_ascii=False)+'```'},]
