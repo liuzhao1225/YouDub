@@ -32,15 +32,15 @@
 
       在运行程序之前，需要进行以下环境设置：
 
-      1. **环境变量配置**：将 `.env.example` 文件改名为 `.env`，并填入相应的环境变量。以下是需要配置的环境变量：
+      **环境变量配置**：将 `.env.example` 文件改名为 `.env`，并填入相应的环境变量。以下是需要配置的环境变量：
 
-         - `OPENAI_API_KEY`: OpenAI API 的密钥。
-         - `MODEL_NAME`: 使用的模型名称，如 'gpt-4' 或 'gpt-3.5-turbo'。
-         - `OPENAI_API_BASE`: 如果你有自己部署的支持 OpenAI API 的大模型，可以填入相应的 OpenAI API 访问的 base_url。
-         - `HF_TOKEN`: 如果使用 speaker diarization 功能，需要提供你的 Hugging Face token，并同意 [pyannote's speaker diarization agreement](https://huggingface.co/pyannote/speaker-diarization-3.1)。
-         - `APPID` 和 `ACCESS_TOKEN`: 如果使用火山引擎的 TTS，需要提供火山引擎的 APPID 和 ACCESS_TOKEN，此项可能需要付费。
+      - `OPENAI_API_KEY`: OpenAI API 的密钥，一般格式为 `sk-xxx`。
+      - `MODEL_NAME`: 使用的模型名称，如 'gpt-4' 或 'gpt-3.5-turbo'。对于翻译任务，使用 'gpt-3.5-turbo'足够了。'gpt-4'太贵了，一天干了我一百多刀。
+      - `OPENAI_API_BASE`: 如果你使用的是 OpenAI 官方的 API，可以将此项留空。如果你有自己部署的支持 OpenAI API 的大模型，可以填入相应的 OpenAI API 访问的 base_url。
+      - `HF_TOKEN`: 如果使用 speaker diarization 功能，需要提供你的 Hugging Face token，并同意 [pyannote's speaker diarization agreement](https://huggingface.co/pyannote/speaker-diarization-3.1)。`HF_TOKEN` 可以在 [Hugging Face 设置](https://huggingface.co/settings/tokens) 中获取。
+      - `APPID` 和 `ACCESS_TOKEN`: 如果使用火山引擎的 TTS，需要提供火山引擎的 APPID 和 ACCESS_TOKEN，此项可能需要付费。
 
-      2. **TTS 设置**：如果不希望使用付费的火山引擎 TTS，可以在 `main.py` 中将 `from youdub.tts_bytedance import TTS_Clone` 改为 `from youdub.tts_paddle import TTS_Clone`，但这可能会影响生成效果。
+      **TTS 设置**：如果不希望使用付费的火山引擎 TTS，可以在 `main.py` 中将 `from youdub.tts_bytedance import TTS_Clone` 改为 `from youdub.tts_paddle import TTS_Clone`，但这可能会影响生成效果。
 
 4. **运行程序**：
    使用以下命令启动主程序：
