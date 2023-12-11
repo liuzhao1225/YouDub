@@ -1,6 +1,6 @@
 audiostretchy==1.3.5
-demucs==4.1.0a2
-librosa==0.9.2
+demucs==4.0.1
+librosa
 loguru==0.7.2
 modelscope==1.10.0
 moviepy==1.0.3
@@ -12,4 +12,4 @@ python-dotenv==1.0.0
 Requests==2.31.0
 scipy==1.11.4
 tqdm==4.64.1
-whisperx==3.1.1
+git+https://github.com/m-bain/whisperx.git
