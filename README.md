@@ -20,10 +20,38 @@
    cd YouDub
    pip install -r requirements.txt
    ```
+   默认安装为 CPU 版本的 PyTorch 如果你需要手动安装特定 CUDA 版本的 PyTorch，可以参考以下步骤：
+   首先，根据你的环境和 PyTorch 的版本，从 [PyTorch 官方网站](https://pytorch.org/) 获取适用的安装命令。例如，如果你的 CUDA 版本是 11.8，你可以使用如下命令安装 PyTorch：
+   ```bash
+   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+   ```
 3. **运行程序**：
    使用以下命令启动主程序：
-   ```bash
-   python main.py
+
+   ```
+   python main.py --input_folders /path/to/input1 /path/to/input2 --output_folders /path/to/output1 /path/to/output2 --diarize
+   ```
+
+   这个命令将会处理在`/path/to/input1`和`/path/to/input2`路径下的视频文件，并将处理后的视频文件存储在`/path/to/output1`和`/path/to/output2`路径下。`--diarize`选项可以开启视频文件的声纹分割功能。
+
+   请注意，`--input_folders`和`--output_folders`参数都接受多个文件夹路径，每个路径之间用空格隔开。同时，输入文件夹和输出文件夹的数量必须相同，否则程序会报错。
+
+   例如，如果你有两个输入文件夹和两个输出文件夹，你可以这样运行程序：
+
+   ```
+   python main.py --input_folders /path/to/input1 /path/to/input2 --output_folders /path/to/output1 /path/to/output2
+   ```
+
+   如果你只有一个输入文件夹和一个输出文件夹，你可以这样运行程序：
+
+   ```
+   python main.py --input_folders /path/to/input --output_folders /path/to/output
+   ```
+
+   如果你想在处理视频文件时开启声纹分割功能，你可以添加`--diarize`选项：
+
+   ```
+   python main.py --input_folders /path/to/input --output_folders /path/to/output --diarize
    ```
 
 ## 使用步骤

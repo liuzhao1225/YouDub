@@ -13,6 +13,8 @@ from youdub.translation_unsafe import Translator
 from youdub.utils import save_wav, adjust_audio_length
 from multiprocessing import Process
 import re
+import argparse
+
 allowed_chars = '[^a-zA-Z0-9_ .]'
 
 
@@ -138,67 +140,86 @@ def translate_from_folder(folder, translator: Translator):
         json.dump(transcript, f, ensure_ascii=False, indent=4)
     
         
-def main(input_folder, output_folder, diarize=False):
-    
+# def main(input_folder, output_folder, diarize=False):
+def main():
+    parser = argparse.ArgumentParser(description='Process some videos.')
+    parser.add_argument('--input_folders', type=str, nargs='+', required=True,
+                        help='The list of input folders containing the videos')
+    parser.add_argument('--output_folders', type=str, nargs='+', required=True,
+                        help='The list of output folders where the processed videos will be stored')
+    parser.add_argument('--diarize', action='store_true',
+                        help='Enable diarization')
+
+    args = parser.parse_args()
+
+    if len(args.input_folders) != len(args.output_folders):
+        raise ValueError(
+            "The number of input folders must match the number of output folders.")
+
     print('='*50)
     print('Initializing...')
-    if diarize:
+    if args.diarize:
         print('Diarization enabled.')
     print('='*50)
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
-    if not os.path.exists(os.path.join(output_folder, '0_to_upload')):
-        os.makedirs(os.path.join(output_folder, '0_to_upload'))
-    if not os.path.exists(os.path.join(output_folder, '0_finished')):
-        os.makedirs(os.path.join(output_folder, '0_finished'))
+    diarize = args.diarize
     processor = VideoProcessor(diarize=diarize)
     translator = Translator()
     tts = TTS_Clone()
-    
-    print('='*50)
-    print('Video processing started.')
-    print('='*50)
-    
-    logging.info('Processing folder...')
-    files = os.listdir(input_folder)
-    t = tqdm(files, desc="Processing files")
-    video_lists = []
-    for file in t:
+
+    for input_folder, output_folder in zip(args.input_folders, args.output_folders):
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+        if not os.path.exists(os.path.join(output_folder, '0_to_upload')):
+            os.makedirs(os.path.join(output_folder, '0_to_upload'))
+        if not os.path.exists(os.path.join(output_folder, '0_finished')):
+            os.makedirs(os.path.join(output_folder, '0_finished'))
+
         print('='*50)
-        t.set_description(f"Processing {file}")
-        print('='*50)
-        if file.endswith('.mp4') or file.endswith('.mkv') or file.endswith('.avi') or file.endswith('.flv'):
-            new_filename = re.sub(allowed_chars, '', file)
-            new_filename = re.sub(r'\s+', ' ', new_filename)
-            # new_filename = new_filename.strip().replace(' ', '_')
-            os.rename(os.path.join(input_folder, file),
-                      os.path.join(input_folder, new_filename))
-            file = new_filename
-            video_lists.append(file)
-            input_path = os.path.join(input_folder, file)
-            output_path = os.path.join(output_folder, file[:-4])
-            if not os.path.exists(output_path):
-                os.makedirs(output_path)
-                pass
-            processor.process_video(input_path, output_path)
-        else:
-            continue
-        if not os.path.exists(os.path.join(output_path, 'zh.json')):
-            translate_from_folder(output_path, translator)
-        audio_process_folder(output_path, tts)
-        replace_audio_ffmpeg(os.path.join(input_folder, file), os.path.join(
-            output_path, 'zh.wav'),  os.path.join(output_path, 'transcript.json'), os.path.join(output_path, file))
+        print(
+            f'Video processing started for {input_folder} to {output_folder}.')
         print('='*50)
 
-    print(f'Video processing finished. {len(video_lists)} videos processed.')
-    print(video_lists)
+        logging.info('Processing folder...')
+        files = os.listdir(input_folder)
+        t = tqdm(files, desc="Processing files")
+        video_lists = []
+        for file in t:
+            print('='*50)
+            t.set_description(f"Processing {file}")
+            print('='*50)
+            if file.endswith('.mp4') or file.endswith('.mkv') or file.endswith('.avi') or file.endswith('.flv'):
+                new_filename = re.sub(r'[^a-zA-Z0-9_.]', '', file)
+                new_filename = re.sub(r'\s+', ' ', new_filename)
+                os.rename(os.path.join(input_folder, file),
+                          os.path.join(input_folder, new_filename))
+                file = new_filename
+                video_lists.append(file)
+                input_path = os.path.join(input_folder, file)
+                output_path = os.path.join(output_folder, file[:-4])
+                if not os.path.exists(output_path):
+                    os.makedirs(output_path)
+                processor.process_video(input_path, output_path)
+            else:
+                continue
+            if not os.path.exists(os.path.join(output_path, 'zh.json')):
+                translate_from_folder(output_path, translator)
+            audio_process_folder(output_path, tts)
+            replace_audio_ffmpeg(os.path.join(input_folder, file), os.path.join(
+                output_path, 'zh.wav'),  os.path.join(output_path, 'transcript.json'), os.path.join(output_path, file))
+            print('='*50)
+
+        print(
+            f'Video processing finished for {input_folder} to {output_folder}. {len(video_lists)} videos processed.')
+
+        print(video_lists)
 if __name__ == '__main__':
-    diarize = False
+    # diarize = False
     
-    series = 'TED_Ed'
-    # series = 'z_Others'
-    series = r'test'
-    # series = 'Kurzgsaget'
-    input_folder = os.path.join(r'input', series)
-    output_folder = os.path.join(r'output', series)
-    main(input_folder, output_folder, diarize=diarize)
+    # series = 'TED_Ed'
+    # # series = 'z_Others'
+    # # series = r'test'
+    # # series = 'Kurzgsaget'
+    # input_folder = os.path.join(r'input', series)
+    # output_folder = os.path.join(r'output', series)
+    # main(input_folder, output_folder, diarize=diarize)
+    main()
