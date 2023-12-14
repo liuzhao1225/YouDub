@@ -4,8 +4,8 @@ import numpy as np
 from scipy.io import wavfile
 
 class Demucs:
-    def __init__(self, model="htdemucs", device='cuda', progress=True, shifts=5) -> None:
-        print('Loading Demucs model...')
+    def __init__(self, model="htdemucs_ft", device='cuda', progress=True, shifts=5) -> None:
+        print(f'Loading Demucs model {model}...')
         self.separator = Separator(
             model=model, device=device, progress=progress, shifts=shifts)
         print('Demucs model loaded.')
@@ -32,6 +32,6 @@ class Demucs:
 
 if __name__ == '__main__':
     # demucs = Demucs(model='htdemucs_ft')
-    demucs = Demucs(model='htdemucs')
-    demucs.inference(r'output\Kurzgesagt Channel Trailer\en.wav',
-                     r'playground')
+    demucs = Demucs(model='hdemucs_mmi')
+    demucs.inference(r'output\TwoMinutePapers\10000 Of These Train ChatGPT In 4 Minutes\en.wav',
+                     r'output\TwoMinutePapers\10000 Of These Train ChatGPT In 4 Minutes')

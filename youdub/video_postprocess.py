@@ -31,6 +31,16 @@ def convert_json_to_srt(json_file, srt_file, max_line_char=30):
 
 
 def replace_audio_ffmpeg(input_video: str, input_audio: str, input_subtitles: str, output_path: str, fps=30) -> None:
+    input_folder = os.path.dirname(input_video)
+    dst_folder = os.path.join(input_folder, '0_finished')
+    if not os.path.exists(dst_folder):
+        os.mkdir(dst_folder)
+    
+    if os.path.exists(output_path):
+        command = f'move "{input_video}" "{dst_folder}"'
+        subprocess.Popen(command, shell=True)
+        return
+
     # Extract the video name from the input video path
     video_name = os.path.basename(input_video)
 
@@ -64,6 +74,9 @@ def replace_audio_ffmpeg(input_video: str, input_audio: str, input_subtitles: st
 
     # Command to delete the temporary file
     commands.append(f'del "{tmp}"')
+    
+    # move input video to dst folder
+    commands.append(f'move "{input_video}" "{dst_folder}"')
 
     # Add an 'exit' command to close the command prompt window after execution
     commands.append('exit')

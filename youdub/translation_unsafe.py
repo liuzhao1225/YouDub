@@ -11,7 +11,7 @@ model_name = os.getenv('MODEL_NAME', 'gpt-3.5-turbo')
 # model_name = 'gpt-4'
 system_message = \
 """请你扮演科普专家的角色。这是一个为视频配音设计的翻译任务，将各种语言精准而优雅地转化为尽量简短的中文。请在翻译时避免生硬的直译，而是追求自然流畅、贴近原文而又不失文学韵味的表达。在这个过程中，请特别注意维护中文特有的语序和句式结构，使翻译文本既忠于原意又符合中文的表达习惯。
-**注意事项**：
+注意事项：
 - 鼓励用自己的话重新诠释文本，避免逐字逐句的直译。采用意译而非直译的方式，用你的话语表达原文的精髓。
 - 长句子可以分成多个短句子，便于观众理解。
 - 保留专有名词的原文，如人名、地名、机构名等。
@@ -38,7 +38,7 @@ class Translator:
             try:
                 response = openai.ChatCompletion.create(
                     model=model_name,
-                    messages=[{"role": "system", "content": '你是一个科普专家。你的目的是总结文本中的主要科学知识。'}] + [{"role": "user", "content": f"。简要概括这个视频的主要内容: {''.join(transcript)}。使用中文总结。"},], timeout=240)
+                    messages=[{"role": "system", "content": '你是一个科普专家。你的目的是总结文本中的主要科学知识。'}] + [{"role": "user", "content": f"。简要概括这个视频的主要内容: {''.join(transcript)}。使用中文总结，并列举专有词汇。"},], timeout=240)
                 summary = response.choices[0].message.content
                 print(summary)
                 retry = -1
@@ -50,8 +50,8 @@ class Translator:
                 time.sleep(1)
                 if retry == 0:
                     print('总结失败')
-        self.fixed_messages = [{'role': 'user', 'content': 'Hello!'}, {
-            'role': 'assistant', 'content': f'你好！'}, {'role': 'user', 'content': 'Animation videos explaining things with optimistic nihilism since 2,013.'}, {
+        self.fixed_messages = [{'role': 'user', 'content': '请翻译：Hello!'}, {
+            'role': 'assistant', 'content': f'你好！'}, {'role': 'user', 'content': '请翻译：Animation videos explaining things with optimistic nihilism since 2,013.'}, {
             'role': 'assistant', 'content': f'从2013年开始，我们以乐观的虚无主义制作动画，进行科普。'}]
         # self.fixed_messages = []
         self.messages = []
@@ -61,14 +61,17 @@ class Translator:
             if not sentence:
                 continue
             success = False
+            retry_times = 0
             retry_message = ''
 
             # print(messages)
             # [{"role": "system", "content": summary + '\n' + self.system_message}] + self.fixed_messages + \
-            history = "".join(final_result[-15:])
+            history = "".join(final_result[-30:])
             while not success:
-                messages = [{"role": "user",
-                             "content": f'{summary}\n{self.system_message}历史内容：\n{history}\n{caution}\n{retry_message}\n请翻译:{sentence}'},]
+                retry_times += 1
+                messages = [
+                    {"role": "system", "content": '请你扮演科普专家的角色。这是一个为视频配音设计的翻译任务，将各种语言精准而优雅地转化为尽量简短的中文。请在翻译时避免生硬的直译，而是追求自然流畅、贴近原文而又不失文学韵味的表达。在这个过程中，请特别注意维护中文特有的语序和句式结构，使翻译文本既忠于原意又符合中文的表达习惯。'},
+                    {"role": "user", "content": f'{summary}\n{self.system_message}历史内容：\n{history}\n以上为参考的历史内容。{retry_message}\n请翻译下面的句子:“{sentence}”'},]
                 try:
                     response = openai.ChatCompletion.create(
                         model=model_name,
@@ -79,16 +82,18 @@ class Translator:
                     response = response.choices[0].message.content
                     result = response.strip()
                     if '\n' in result:
-                        retry_message += '无视前面的内容，仅仅只翻译下面的英文，请简短翻译！'
-                        raise Exception('存在换行符换行符')
+                        retry_message += '无视前面的内容，仅仅只翻译下面的英文，请简短翻译，只输出翻译结果。'
+                    if '翻译' in result and retry_times < 20:
+                        retry_message += '无视前面的内容，请不要出现“翻译”字样，仅仅只翻译下面的英文，请简短翻译，只输出翻译结果。'
+                        raise Exception('存在"翻译"字样')
                     if (result.startswith('“') and result.endswith('”')) or (result.startswith('"') and result.endswith('"')):
                         result = result[1:-1]
                     if len(sentence) <= 10:
                         if len(result) > 20:
-                            retry_message += '注意：仅仅只翻译下面的内容，请简短翻译！'
+                            retry_message += '注意：仅仅只翻译下面的内容，请简短翻译，只输出翻译结果。'
                             raise Exception('翻译过长')
-                    elif len(result) > len(sentence):
-                        retry_message += '注意：仅仅只翻译下面的内容，请简短翻译！'
+                    elif len(result) > len(sentence)*0.75:
+                        retry_message += '注意：仅仅只翻译下面的内容，请简短翻译，只输出翻译结果。'
                         raise Exception('翻译过长')
                     result = re.sub(r'\（[^)]*\）', '', result)
                     result = result.replace('...', '，')

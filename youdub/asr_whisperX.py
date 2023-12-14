@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+from pyannote.audio import Inference, Model
+from moviepy.editor import VideoFileClip
+from scipy.spatial.distance import cosine
+
+import numpy as np
+import soundfile as sf
 import sys, os
 sys.path.append(os.getcwd())
 import whisperx
@@ -8,7 +14,7 @@ import string
 import os
 import logging
 import json
-from moviepy.editor import VideoFileClip
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -56,6 +62,17 @@ class VideoProcessor:
         self.diarize = diarize
         if self.diarize:
             self.diarize_model = whisperx.DiarizationPipeline(use_auth_token=os.getenv('HF_TOKEN'), device=device)
+            self.embedding_model = Model.from_pretrained("pyannote/embedding", use_auth_token=os.getenv('HF_TOKEN'))
+            self.embedding_inference = Inference(
+                self.embedding_model, window="whole")
+            self.voice_type_embedding = dict()
+            voice_type_folder = r'voice_type'
+            for file in os.listdir(voice_type_folder):
+                if file.endswith('.npy'):
+                    voice_type = file.replace('.npy', '')
+                    embedding = np.load(os.path.join(voice_type_folder, file))
+                    self.voice_type_embedding[voice_type] = embedding
+            logging.info(f'Loaded {len(self.voice_type_embedding)} voice types.')
 
         self.language_code = 'en'
         self.align_model, self.meta_data = whisperx.load_align_model(language_code=self.language_code, device=device)
@@ -87,6 +104,63 @@ class VideoProcessor:
         result = whisperx.assign_word_speakers(
             diarize_segments, transcribe_result)
         return result
+    
+    def get_speaker_embedding(self, json_path):
+        with open(json_path, 'r', encoding='utf-8') as f:
+            result = json.load(f)
+        wav_folder = os.path.dirname(json_path)
+        wav_path = os.path.join(wav_folder, 'en_Vocals.wav')
+        audio_data, samplerate = sf.read(wav_path)
+        speaker_dict = dict()
+        for segment in result:
+            start = int(segment['start'] * samplerate)
+            end = int(segment['end'] * samplerate)
+            speaker_segment_audio = audio_data[start:end]
+            speaker_dict[segment['speaker']] = np.concatenate((speaker_dict.get(
+                segment['speaker'], np.zeros((0,2))),speaker_segment_audio))
+        for speaker, audio in speaker_dict.items():
+            speaker_file_path = os.path.join(
+                wav_folder, f"{speaker}.wav")
+            sf.write(speaker_file_path, audio, samplerate)
+        for file in os.listdir(wav_folder):
+            if file.startswith('SPEAKER') and file.endswith('.wav'):
+                wav_path = os.path.join(wav_folder, file)
+                embedding = self.embedding_inference(wav_path)
+                np.save(wav_path.replace('.wav', '.npy'), embedding)
+                
+    def find_closest_unique_voice_type(self, speaker_embedding):
+        speaker_to_voice_type = {}
+        available_voice_types = set(self.voice_type_embedding.keys())
+
+        for speaker, sp_embedding in speaker_embedding.items():
+            closest_voice_type = None
+            min_distance = float('inf')
+
+            for voice_type in available_voice_types:
+                vt_embedding = self.voice_type_embedding[voice_type]
+                distance = cosine(sp_embedding, vt_embedding)
+                if distance < min_distance:
+                    min_distance = distance
+                    closest_voice_type = voice_type
+
+            if closest_voice_type:
+                speaker_to_voice_type[speaker] = closest_voice_type
+                available_voice_types.remove(closest_voice_type)
+
+        return speaker_to_voice_type
+
+    def get_speaker_to_voice_type_dict(self, json_path):
+        self.get_speaker_embedding(json_path)
+        wav_folder = os.path.dirname(json_path)
+        
+        speaker_embedding = dict()
+        for file in os.listdir(wav_folder):
+            if file.startswith('SPEAKER') and file.endswith('.npy'):
+                speaker_name = file.replace('.npy', '')
+                embedding = np.load(os.path.join(wav_folder, file))
+                speaker_embedding[speaker_name] = embedding
+
+        return self.find_closest_unique_voice_type(speaker_embedding)
     
     def extract_audio_from_video(self, video_path, audio_path):
         logging.info(f'Extracting audio from video {video_path}...')
@@ -136,7 +210,19 @@ class VideoProcessor:
                     os.path.join(output_folder, 'en.wav'), transcription)
             self.save_transcription_to_json(
                 transcription, os.path.join(output_folder, 'en.json'))
+        if not os.path.exists(os.path.join(output_folder, 'speaker_to_voice_type.json')):
+            if self.diarize:
+                speaker_to_voice_type = self.get_speaker_to_voice_type_dict(
+                    os.path.join(output_folder, 'en.json'))
+                with open(os.path.join(output_folder, 'speaker_to_voice_type.json'), 'w', encoding='utf-8') as f:
+                    json.dump(speaker_to_voice_type, f, ensure_ascii=False, indent=4)
+            else:
+                speaker_to_voice_type = {'SPEAKER_00': 'BV701_streaming'}
+        else:
+            with open(os.path.join(output_folder, 'speaker_to_voice_type.json'), 'r', encoding='utf-8') as f:
+                speaker_to_voice_type = json.load(f)
         logging.debug('Video processing completed.')
+        return speaker_to_voice_type
 
 
 # 使用示例

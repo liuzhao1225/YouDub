@@ -26,8 +26,10 @@ def add_space_before_capitals(text):
     text = re.sub(r'(?<=[a-zA-Z])(?=\d)|(?<=\d)(?=[a-zA-Z])', ' ', text)
     return text
 
-def audio_process_folder(folder, tts: TTS_Clone):
+
+def audio_process_folder(folder, tts: TTS_Clone, speaker_to_voice_type, vocal_only=False):
     logging.info(f'TTS processing folder {folder}...')
+    logging.info(f'speaker_to_voice_type: {speaker_to_voice_type}')
     with open(os.path.join(folder, 'zh.json'), 'r', encoding='utf-8') as f:
         transcript = json.load(f)
     full_wav = np.zeros((0,))
@@ -50,7 +52,7 @@ def audio_process_folder(folder, tts: TTS_Clone):
                 folder, 'temp', f'zh_{str(i).zfill(3)}.wav'), sr=24000)[0]
         else:
             wav = tts.inference(add_space_before_capitals(text), os.path.join(
-                folder, 'temp', f'zh_{str(i).zfill(3)}.wav'), speaker=line.get('speaker', 'SPEAKER_00'))
+                folder, 'temp', f'zh_{str(i).zfill(3)}.wav'), speaker=line.get('speaker', 'SPEAKER_00'), speaker_to_voice_type=speaker_to_voice_type)
             time.sleep(0.1)
         # save_wav(wav, )
         wav_adjusted, adjusted_length = adjust_audio_length(wav, os.path.join(folder, 'temp', f'zh_{str(i).zfill(3)}.wav'), os.path.join(
@@ -80,9 +82,12 @@ def audio_process_folder(folder, tts: TTS_Clone):
     # 合并两个音频
     full_wav /= np.max(np.abs(full_wav))
     save_wav(full_wav, os.path.join(folder, f'zh_Vocals.wav'))
-    instruments_wav /= np.max(np.abs(instruments_wav))
-    instrument_coefficient = 1.2
+    # instruments_wav /= np.max(np.abs(instruments_wav))
+    instrument_coefficient = 1
+    if vocal_only:
+        instrument_coefficient = 0
     combined_wav = full_wav + instruments_wav*instrument_coefficient
+    combined_wav /= np.max(np.abs(combined_wav))
     save_wav(combined_wav, os.path.join(folder, f'zh.wav'))
 
 
@@ -145,11 +150,14 @@ def main():
     parser = argparse.ArgumentParser(description='Process some videos.')
     parser.add_argument('--input_folders', type=str, nargs='+', required=True,
                         help='The list of input folders containing the videos')
-    parser.add_argument('--output_folders', type=str, nargs='+', required=True,
-                        help='The list of output folders where the processed videos will be stored')
+    parser.add_argument('--output_folders', type=str, nargs='+', required=True, help='The list of output folders where the processed videos will be stored')
+    parser.add_argument('--vocal_only_folders', type=str, nargs='+',
+                        help='The list of input folders containing the videos that only need vocal for the final result.')
+    
     parser.add_argument('--diarize', action='store_true',
                         help='Enable diarization')
 
+    
     args = parser.parse_args()
 
     if len(args.input_folders) != len(args.output_folders):
@@ -167,13 +175,20 @@ def main():
     tts = TTS_Clone()
 
     for input_folder, output_folder in zip(args.input_folders, args.output_folders):
+        if input_folder in args.vocal_only_folders:
+            vocal_only = True
+            print(f'Vocal only mode enabled for {input_folder}.')
+        else:
+            vocal_only = False
+            
+        if not os.path.exists(os.path.join(input_folder, '0_finished')):
+            os.makedirs(os.path.join(input_folder, '0_finished'))
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
         if not os.path.exists(os.path.join(output_folder, '0_to_upload')):
             os.makedirs(os.path.join(output_folder, '0_to_upload'))
         if not os.path.exists(os.path.join(output_folder, '0_finished')):
             os.makedirs(os.path.join(output_folder, '0_finished'))
-
         print('='*50)
         print(
             f'Video processing started for {input_folder} to {output_folder}.')
@@ -188,22 +203,25 @@ def main():
             t.set_description(f"Processing {file}")
             print('='*50)
             if file.endswith('.mp4') or file.endswith('.mkv') or file.endswith('.avi') or file.endswith('.flv'):
-                new_filename = re.sub(r'[^a-zA-Z0-9_.]', '', file)
+                new_filename = re.sub(r'[^a-zA-Z0-9_. ]', '', file)
                 new_filename = re.sub(r'\s+', ' ', new_filename)
+                new_filename = new_filename.strip()
                 os.rename(os.path.join(input_folder, file),
                           os.path.join(input_folder, new_filename))
                 file = new_filename
                 video_lists.append(file)
                 input_path = os.path.join(input_folder, file)
-                output_path = os.path.join(output_folder, file[:-4])
+                output_path = os.path.join(output_folder, file[:-4]).strip()
                 if not os.path.exists(output_path):
                     os.makedirs(output_path)
-                processor.process_video(input_path, output_path)
+                speaker_to_voice_type = processor.process_video(
+                    input_path, output_path)
             else:
                 continue
             if not os.path.exists(os.path.join(output_path, 'zh.json')):
                 translate_from_folder(output_path, translator)
-            audio_process_folder(output_path, tts)
+            audio_process_folder(
+                output_path, tts, speaker_to_voice_type, vocal_only=vocal_only)
             replace_audio_ffmpeg(os.path.join(input_folder, file), os.path.join(
                 output_path, 'zh.wav'),  os.path.join(output_path, 'transcript.json'), os.path.join(output_path, file))
             print('='*50)

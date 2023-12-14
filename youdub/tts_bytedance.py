@@ -32,7 +32,7 @@ def process_tts_input(text):
     text = text.strip()
     return text
 
-
+# [700, 705, 701, 001, 406, 407, 002, 701, 123, 120, 119, 115, 107, 100, 104, 004, 113, 102, 405]
     
 class TTS_Clone:
     def __init__(self):
@@ -72,11 +72,11 @@ class TTS_Clone:
         if not os.path.exists(self.output_path):
             os.mkdir(self.output_path)
 
-    def inference(self, text, output_wav_path, speaker='SPEAKER_00'):
+    def inference(self, text, output_wav_path, speaker='SPEAKER_00', speaker_to_voice_type={'SPEAKER_00': 'BV701_streaming'}):
         self.request_json['request']['text'] = text
         self.request_json['request']['reqid'] = str(uuid.uuid4())
-        self.request_json['audio']['voice_type'] = speaker2voice_name.get(speaker, 'BV701_streaming')
-        
+        self.request_json['audio']['voice_type'] = speaker_to_voice_type.get(
+                speaker, 'BV701_streaming')
         max_retries = 5
         timeout_seconds = 10  # Set your desired timeout in seconds
 
@@ -93,6 +93,8 @@ class TTS_Clone:
                     return np.frombuffer(data, dtype=np.int16)
                 else:
                     print(f"Request failed with status code: {resp.status_code}")
+                    if resp.status_code == 500:
+                        return None
                     raise Exception(f"Request failed with status code: {resp.status_code}")
             except Exception as e:
                 print(f"Request failed: {e}, retrying ({attempt+1}/{max_retries})")
@@ -132,10 +134,20 @@ if __name__ == '__main__':
     tts = TTS_Clone()
     # process_folder(
     #     r'output\test\Blood concrete and dynamite Building the Hoover Dam Alex Gendler', tts)
-    for k, v in speaker2voice_name.items():
-        output_wav = f'./{v}.wav'
+    from tqdm import tqdm
+    voice_type_folder = r'voice_type'
+    voice_type_lst = []
+    for fname in os.listdir(voice_type_folder):
+        voice_type_lst.append(fname.split('.')[0])
+    for voice_type in tqdm(voice_type_lst):
+        # voice_type = f'BV{str(i).zfill(3)}_streaming'
+        output_wav = f'voice_type/{voice_type}.wav'
+        # if os.path.exists(output_wav):
+        #     continue
         try:
             tts.inference(
-                '这是一个为视频配音设计的翻译任务，将各种语言精准而优雅地转化为尽量简短的正确的翻译。测试ChatGPT和Gemini。我的DNA序列有322,122个分子。', output_wav, v)
+                'YouDub 是一个创新的开源工具，专注于将 YouTube 等平台的优质视频翻译和配音为中文版本。此工具融合了先进的 AI 技术，包括语音识别、大型语言模型翻译以及 AI 声音克隆技术，为中文用户提供具有原始 YouTuber 音色的中文配音视频。更多示例和信息，欢迎访问我的bilibili视频主页。你也可以加入我们的微信群，扫描下方的二维码即可。', output_wav, voice_type=voice_type)
         except:
-            print(f'voice {v} failed.')
+            print(f'voice {voice_type} failed.')
+        time.sleep(0.1)
+
