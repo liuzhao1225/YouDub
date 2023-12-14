@@ -109,7 +109,7 @@ class VideoProcessor:
         with open(json_path, 'r', encoding='utf-8') as f:
             result = json.load(f)
         wav_folder = os.path.dirname(json_path)
-        wav_path = os.path.join(wav_folder, 'en_Vocals.wav')
+        wav_path = os.path.join(wav_folder, 'en.wav')
         audio_data, samplerate = sf.read(wav_path)
         speaker_dict = dict()
         for segment in result:
@@ -118,33 +118,44 @@ class VideoProcessor:
             speaker_segment_audio = audio_data[start:end]
             speaker_dict[segment['speaker']] = np.concatenate((speaker_dict.get(
                 segment['speaker'], np.zeros((0,2))),speaker_segment_audio))
+        speaker_folder = os.path.join(wav_folder, 'SPEAKER')
+        if not os.path.exists(speaker_folder):
+            os.makedirs(speaker_folder)
         for speaker, audio in speaker_dict.items():
             speaker_file_path = os.path.join(
-                wav_folder, f"{speaker}.wav")
+                speaker_folder, f"{speaker}.wav")
             sf.write(speaker_file_path, audio, samplerate)
-        for file in os.listdir(wav_folder):
+            
+        for file in os.listdir(speaker_folder):
             if file.startswith('SPEAKER') and file.endswith('.wav'):
-                wav_path = os.path.join(wav_folder, file)
+                wav_path = os.path.join(speaker_folder, file)
                 embedding = self.embedding_inference(wav_path)
                 np.save(wav_path.replace('.wav', '.npy'), embedding)
                 
     def find_closest_unique_voice_type(self, speaker_embedding):
         speaker_to_voice_type = {}
+        available_speakers = set(speaker_embedding.keys())
         available_voice_types = set(self.voice_type_embedding.keys())
 
-        for speaker, sp_embedding in speaker_embedding.items():
-            closest_voice_type = None
+        while available_speakers and available_voice_types:
             min_distance = float('inf')
+            closest_speaker = None
+            closest_voice_type = None
 
-            for voice_type in available_voice_types:
-                vt_embedding = self.voice_type_embedding[voice_type]
-                distance = cosine(sp_embedding, vt_embedding)
-                if distance < min_distance:
-                    min_distance = distance
-                    closest_voice_type = voice_type
+            for speaker in available_speakers:
+                sp_embedding = speaker_embedding[speaker]
+                for voice_type in available_voice_types:
+                    vt_embedding = self.voice_type_embedding[voice_type]
+                    distance = cosine(sp_embedding, vt_embedding)
 
-            if closest_voice_type:
-                speaker_to_voice_type[speaker] = closest_voice_type
+                    if distance < min_distance:
+                        min_distance = distance
+                        closest_speaker = speaker
+                        closest_voice_type = voice_type
+
+            if closest_speaker and closest_voice_type:
+                speaker_to_voice_type[closest_speaker] = closest_voice_type
+                available_speakers.remove(closest_speaker)
                 available_voice_types.remove(closest_voice_type)
 
         return speaker_to_voice_type
@@ -152,12 +163,12 @@ class VideoProcessor:
     def get_speaker_to_voice_type_dict(self, json_path):
         self.get_speaker_embedding(json_path)
         wav_folder = os.path.dirname(json_path)
-        
+        speaker_folder = os.path.join(wav_folder, 'SPEAKER')
         speaker_embedding = dict()
-        for file in os.listdir(wav_folder):
+        for file in os.listdir(speaker_folder):
             if file.startswith('SPEAKER') and file.endswith('.npy'):
                 speaker_name = file.replace('.npy', '')
-                embedding = np.load(os.path.join(wav_folder, file))
+                embedding = np.load(os.path.join(speaker_folder, file))
                 speaker_embedding[speaker_name] = embedding
 
         return self.find_closest_unique_voice_type(speaker_embedding)

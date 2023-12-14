@@ -1,9 +1,9 @@
 @echo off
 setlocal enabledelayedexpansion
 
-set "_folders=3b1b ariseffai Be_Smart braintruffle CodeAesthetic domainofscience Fireship Koranos Kurzgsaget PrimerBlobs SamuelAlbanie1 ScienceClicEN TED_Ed TwoMinutePapers yoshtm z_Others"
+set "_folders=3b1b ariseffai Be_Smart braintruffle CodeAesthetic domainofscience Fireship Koranos Kurzgsaget PrimerBlobs QuantaScienceChannel SamuelAlbanie1 ScienceClicEN TED_Ed TwoMinutePapers yoshtm z_Others"
 
-set "_folders=z_Others"
+@REM set "_folders=z_Others"
 set "_vocal_only_folders=ariseffai domainofscience SamuelAlbanie1 TwoMinutePapers"
 set "input_folders="
 set "output_folders="
