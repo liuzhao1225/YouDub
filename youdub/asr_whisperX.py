@@ -109,12 +109,13 @@ class VideoProcessor:
         with open(json_path, 'r', encoding='utf-8') as f:
             result = json.load(f)
         wav_folder = os.path.dirname(json_path)
-        wav_path = os.path.join(wav_folder, 'en.wav')
+        wav_path = os.path.join(wav_folder, 'en_Vocals.wav')
         audio_data, samplerate = sf.read(wav_path)
         speaker_dict = dict()
+        length = len(audio_data)
         for segment in result:
-            start = int(segment['start'] * samplerate)
-            end = int(segment['end'] * samplerate)
+            start = max(0, int((segment['start'] - 0.1) * samplerate))
+            end = min(int((segment['end']+0.1) * samplerate), length)
             speaker_segment_audio = audio_data[start:end]
             speaker_dict[segment['speaker']] = np.concatenate((speaker_dict.get(
                 segment['speaker'], np.zeros((0,2))),speaker_segment_audio))
@@ -211,7 +212,7 @@ class VideoProcessor:
         logging.debug('Processing video...')
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
-        if not os.path.exists(os.path.join(output_folder, 'en.wav')):
+        if not os.path.exists(os.path.join(output_folder, 'en_Vocals.wav')):
             self.extract_audio_from_video(video_path, os.path.join(output_folder, 'en.wav'))
         if not os.path.exists(os.path.join(output_folder, 'en.json')):
             transcription = self.transcribe_audio(

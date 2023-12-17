@@ -27,7 +27,8 @@ class Demucs:
         print(f'Demucs saved instruments to {instruments_output_path}.')
 
     def save_wav(self, wav: np.ndarray, output_path:str):
-        wav_norm = wav * (32767 / max(0.01, np.max(np.abs(wav))))
+        # wav_norm = wav * (32767 / max(0.01, np.max(np.abs(wav))))
+        wav_norm = wav * 32767
         wavfile.write(output_path, 44100, wav_norm.astype(np.int16))
 
 if __name__ == '__main__':
