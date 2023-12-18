@@ -8,7 +8,7 @@ import time
 
 import numpy as np
 sys.path.append(os.getcwd())
-from youdub.utils import save_wav, adjust_audio_length, split_text
+from youdub.utils import save_wav, adjust_audio_length, split_text, tts_preprocess_text
 import logging
 from loguru import logger
 import requests
@@ -20,10 +20,6 @@ import re
 import base64
 from dotenv import load_dotenv
 load_dotenv()
-
-def process_tts_input(text):
-    text = text.strip()
-    return text
 
 # [700, 705, 701, 001, 406, 407, 002, 701, 123, 120, 119, 115, 107, 100, 104, 004, 113, 102, 405]
     
@@ -96,14 +92,6 @@ class TTS_Clone:
         print("Max retries reached, request failed")
         return None
 
-def tts_preprocess_text(text):
-    # 使用正则表达式查找所有的大写字母，并在它们前面加上空格
-    # 正则表达式说明：(?<!^) 表示如果不是字符串开头，则匹配，[A-Z] 匹配任何大写字母
-    text = re.sub(r'(?<!^)([A-Z])', r' \1', text)
-    text = text.replace('AI', '人工智能')
-    # 使用正则表达式在字母和数字之间插入空格
-    text = re.sub(r'(?<=[a-zA-Z])(?=\d)|(?<=\d)(?=[a-zA-Z])', ' ', text)
-    return text
 
 def audio_process_folder(folder, tts: TTS_Clone, speaker_to_voice_type, vocal_only=False):
     logging.info(f'TTS processing folder {folder}...')

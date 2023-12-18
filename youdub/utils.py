@@ -1,8 +1,20 @@
+import re
 import numpy as np
 import librosa
 from audiostretchy.stretch import stretch_audio
 from scipy.io import wavfile
+from youdub.cn_tx import TextNorm
+normalizer = TextNorm()
 
+def tts_preprocess_text(text):
+    # 使用正则表达式查找所有的大写字母，并在它们前面加上空格
+    # 正则表达式说明：(?<!^) 表示如果不是字符串开头，则匹配，[A-Z] 匹配任何大写字母
+    text = text.replace('AI', '人工智能')
+    text = re.sub(r'(?<!^)([A-Z])', r' \1', text)
+    text = normalizer(text)
+    # 使用正则表达式在字母和数字之间插入空格
+    text = re.sub(r'(?<=[a-zA-Z])(?=\d)|(?<=\d)(?=[a-zA-Z])', ' ', text)
+    return text
 
 def split_text(input_data,
                punctuations=['。', '？', '！', '\n']):

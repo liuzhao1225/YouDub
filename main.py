@@ -12,7 +12,7 @@ from youdub.tts_bytedance import audio_process_folder as audio_process_folder_by
 from youdub.asr_whisperX import VideoProcessor
 from youdub.video_postprocess import replace_audio_ffmpeg
 from youdub.translation_unsafe import Translator
-# from youdub.utils import save_wav, adjust_audio_length, split_text
+from youdub.utils import split_text
 from multiprocessing import Process
 import re
 import argparse
@@ -30,7 +30,7 @@ def translate_from_folder(folder, translator: Translator, original_fname):
     for i, sentence in enumerate(result):
         transcript[i]['text'] = sentence
         
-    # transcript = split_text(transcript) # 使用whisperX后，会自动分句，所以不再需要手动分句。同时避免了将`“你好。”`分为`“你好。`和`”`的情况
+    transcript = split_text(transcript) # 使用whisperX后，会自动分句，所以不再需要手动分句。同时避免了将`“你好。”`分为`“你好。`和`”`的情况
     with open(os.path.join(folder, 'zh.json'), 'w', encoding='utf-8') as f:
         json.dump(transcript, f, ensure_ascii=False, indent=4)
     with open(os.path.join(folder, 'summary.txt'), 'w', encoding='utf-8') as f:

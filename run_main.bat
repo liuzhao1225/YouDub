@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 
 set "_folders=HistoryOfTheUniverse AI_Explained 3b1b ariseffai Be_Smart braintruffle CodeAesthetic domainofscience Fireship Koranos Kurzgsaget PrimerBlobs QuantaScienceChannel SamuelAlbanie1 ScienceClicEN TED_Ed TwoMinutePapers yoshtm z_Others"
 
-@REM set "_folders=test"
+set "_folders=z_Others"
 set "input_folders="
 set "output_folders="
 

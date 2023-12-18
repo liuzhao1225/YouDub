@@ -9,14 +9,12 @@ from tqdm import tqdm
 import numpy as np
 import json
 import logging
-from youdub.utils import save_wav, adjust_audio_length, split_text
+from youdub.utils import save_wav, adjust_audio_length, split_text, tts_preprocess_text
 from youdub.cn_tx import TextNorm
 # Get device
 # import torch
 # device = 'cuda' if torch.cuda.is_available() else 'cpu'
 device = 'cuda'
-
-normalizer=TextNorm()
 
 class TTS_Clone:
     def __init__(self, model_path="tts_models/multilingual/multi-dataset/xtts_v2", device='cuda', language='zh-cn'):
@@ -34,15 +32,7 @@ class TTS_Clone:
         return wav
 
 
-def tts_preprocess_text(text):
-    # 使用正则表达式查找所有的大写字母，并在它们前面加上空格
-    # 正则表达式说明：(?<!^) 表示如果不是字符串开头，则匹配，[A-Z] 匹配任何大写字母
-    text = text.replace('AI', '人工智能')
-    text = re.sub(r'(?<!^)([A-Z])', r' \1', text)
-    text = normalizer(text)
-    # 使用正则表达式在字母和数字之间插入空格
-    text = re.sub(r'(?<=[a-zA-Z])(?=\d)|(?<=\d)(?=[a-zA-Z])', ' ', text)
-    return text
+
 
 
 def audio_process_folder(folder, tts: TTS_Clone, speaker_to_voice_type=None, vocal_only=False):
