@@ -17,6 +17,7 @@ system_message = \
 - 保留专有名词的原文，如人名、地名、机构名等。
 - 人名、地名、机构名等保持原文。
 - 化学式用中文表示，例如CO2说二氧化碳，H2O说水。
+- 请将Transformer, token等人工智能相关的专业名词保留原文。
 - 数学公式用中文表示，例如x2或x^2或x²说x的平方，a+b说a加b。
 - 原始文本可能有错误，请纠正为正确的内容，例如Chats GPT应该翻译为ChatGPT。
 """
@@ -26,7 +27,15 @@ caution = """请在翻译时避免生硬的直译，而是追求自然流畅、�
 
 prefix = '中文：'
 
-
+def translation_postprocess(result):
+    result = re.sub(r'\（[^)]*\）', '', result)
+    result = result.replace('...', '，')
+    result = re.sub(r'(?<=\d),(?=\d)', '', result)
+    result = result.replace('²', '的平方').replace(
+        '————', '：').replace('——', '：').replace('°', '度')
+    result = result.replace("AI", '人工智能')
+    result = result.replace('变压器', "Transformer")
+    return result
 class Translator:
     def __init__(self):
         self.system_message = system_message
@@ -40,7 +49,7 @@ class Translator:
             try:
                 response = openai.ChatCompletion.create(
                     model=model_name,
-                    messages=[{"role": "system", "content": f'你是一个科普专家。你的目的是总结文本中的主要科学知识。{magic}！'}] + [{"role": "user", "content": f"。简要概括这个视频的主要内容。\n标题：{original_fname}\n内容：{''.join(transcript)}\n请你用中文给视频写一个“标题”、“主要内容”和“专业名词”，谢谢。"},], timeout=240)
+                    messages=[{"role": "system", "content": f'你是一个科普专家。你的目的是总结文本中的主要科学知识。{magic}！'}] + [{"role": "user", "content": f"。简要概括这个视频的主要内容。\n标题：{original_fname}\n内容：{''.join(transcript)}\n标题：{original_fname}\n请你用中文给视频写一个“标题”、“主要内容”和“专业名词”，谢谢。"},], timeout=240)
                 summary = response.choices[0].message.content
                 print(summary)
                 retry = -1
@@ -68,11 +77,11 @@ class Translator:
 
             # print(messages)
             # [{"role": "system", "content": summary + '\n' + self.system_message}] + self.fixed_messages + \
-            history = "".join(final_result[-30:])
+            history = " ".join(final_result[-30:])
             while retry > 0:
                 retry -= 1
                 messages = [
-                    {"role": "system", "content": f'请你扮演科普专家的角色。这是一个为视频配音设计的翻译任务，将各种语言精准而优雅地转化为尽量简短的中文。请在翻译时避免生硬的直译，而是追求自然流畅、贴近原文而又不失文学韵味的表达。在这个过程中，请特别注意维护中文特有的语序和句式结构，使翻译文本既忠于原意又符合中文的表达习惯。{magic}'}] + self.fixed_messages + [{"role": "user", "content": f'{summary}\n{self.system_message}历史内容：\n{history}\n以上为参考的历史内容。{retry_message}\n深呼吸，请正确意译这句英文:“{sentence}”'},]
+                    {"role": "system", "content": f'请你扮演科普专家的角色。这是一个为视频配音设计的翻译任务，将各种语言精准而优雅地转化为尽量简短的中文。请在翻译时避免生硬的直译，而是追求自然流畅、贴近原文而又不失文学韵味的表达。在这个过程中，请特别注意维护中文特有的语序和句式结构，使翻译文本既忠于原意又符合中文的表达习惯。{magic}'}] + self.fixed_messages + [{"role": "user", "content": f'{summary}\n{self.system_message}\n请将Transformer, token等人工智能相关的专业名词保留原文。长句分成几个短句。\n历史内容：\n{history}\n以上为参考的历史内容。\n{retry_message}\n深呼吸，请正确翻译这句英文:“{sentence}”翻译成简洁中文。'},]
                 try:
                     response = openai.ChatCompletion.create(
                         model=model_name,
@@ -91,13 +100,16 @@ class Translator:
                             raise Exception('存在"翻译"字样')
                         if '这句话的意思是' in result:
                             retry_message += '无视前面的内容，请不要出现“这句话的意思是”字样，仅仅只翻译下面的英文，请简短翻译，只输出翻译结果。'
-                            raise Exception('存在"翻译"字样')
+                            raise Exception('存在"这句话的意思是"字样')
                         if '这句话的意译是' in result:
                             retry_message += '无视前面的内容，请不要出现“这句话的意译是”字样，仅仅只翻译下面的英文，请简短翻译，只输出翻译结果。'
-                            raise Exception('存在"翻译"字样')
+                            raise Exception('存在"这句话的意译是"字样')
                         if '这句' in result:
                             retry_message += '无视前面的内容，请不要出现“这句话”字样，仅仅只翻译下面的英文，请简短翻译，只输出翻译结果。'
-                            raise Exception('存在"翻译"字样')
+                            raise Exception('存在"这句"字样')
+                        if '深呼吸' in result:
+                            retry_message += '无视前面的内容，请不要出现“深呼吸”字样，仅仅只翻译下面的英文，请简短翻译，只输出翻译结果。'
+                            raise Exception('存在"深呼吸"字样')
                         if (result.startswith('“') and result.endswith('”')) or (result.startswith('"') and result.endswith('"')):
                             result = result[1:-1]
                         if len(sentence) <= 10:
@@ -107,11 +119,8 @@ class Translator:
                         elif len(result) > len(sentence)*0.75:
                             retry_message += '注意：仅仅只翻译下面的内容，请简短翻译，只输出翻译结果。'
                             raise Exception('翻译过长')
-                    result = re.sub(r'\（[^)]*\）', '', result)
-                    result = result.replace('...', '，')
-                    result = re.sub(r'(?<=\d),(?=\d)', '', result)
-                    result = result.replace('²', '的平方').replace(
-                        '————', '：').replace('——', '：')
+                    result = translation_postprocess(result)
+                    
                     if result:
                         self.messages.append(
                             {'role': 'user', 'content': f"{sentence}"})

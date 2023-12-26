@@ -75,7 +75,7 @@ def audio_process_folder(folder, tts: TTS_Clone, speaker_to_voice_type=None, voc
     # load os.path.join(folder, 'en_Instruments.wav')
     # combine with full_wav (the length of the two audio might not be equal)
     transcript = split_text(transcript, punctuations=[
-                            '，', '；', '：', '。', '？', '！', '\n'])
+                            '，', '；', '：', '。', '？', '！', '\n','”'])
     with open(os.path.join(folder, 'transcript.json'), 'w', encoding='utf-8') as f:
         json.dump(transcript, f, ensure_ascii=False, indent=4)
     instruments_wav, sr = librosa.load(
@@ -107,7 +107,6 @@ def audio_process_folder(folder, tts: TTS_Clone, speaker_to_voice_type=None, voc
 if __name__ == '__main__':
     folder = r'output\test\Elon Musk on Sam Altman and ChatGPT I am the reason OpenAI exists'
     tts = TTS_Clone("tts_models/multilingual/multi-dataset/xtts_v2", language='zh-cn')
-    audio_process_folder(
-        folder, tts)
+    audio_process_folder(folder, tts)
     
     

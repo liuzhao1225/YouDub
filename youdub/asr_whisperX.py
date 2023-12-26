@@ -113,9 +113,10 @@ class VideoProcessor:
         audio_data, samplerate = sf.read(wav_path)
         speaker_dict = dict()
         length = len(audio_data)
+        delay = 0.1
         for segment in result:
-            start = max(0, int((segment['start'] - 0.1) * samplerate))
-            end = min(int((segment['end']+0.1) * samplerate), length)
+            start = max(0, int((segment['start'] - delay) * samplerate))
+            end = min(int((segment['end']+delay) * samplerate), length)
             speaker_segment_audio = audio_data[start:end]
             speaker_dict[segment['speaker']] = np.concatenate((speaker_dict.get(
                 segment['speaker'], np.zeros((0,2))),speaker_segment_audio))

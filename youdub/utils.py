@@ -17,7 +17,7 @@ def tts_preprocess_text(text):
     return text
 
 def split_text(input_data,
-               punctuations=['。', '？', '！', '\n']):
+               punctuations=['。', '？', '！', '\n', "”"]):
     # Chinese punctuation marks for sentence ending
 
     # Function to check if a character is a Chinese ending punctuation
@@ -29,6 +29,7 @@ def split_text(input_data,
     for item in input_data:
         start = item["start"]
         text = item["text"]
+        speaker = item.get("speaker", "SPEAKER_00")
         sentence_start = 0
 
         # Calculate the duration for each character
@@ -39,6 +40,8 @@ def split_text(input_data,
                 continue
             if i - sentence_start < 5 and i != len(text) - 1:
                 continue
+            if i < len(text) - 1 and is_punctuation(text[i+1]):
+                continue
             sentence = text[sentence_start:i+1]
             sentence_end = start + duration_per_char * len(sentence)
 
@@ -46,7 +49,8 @@ def split_text(input_data,
             output_data.append({
                 "start": round(start, 3),
                 "end": round(sentence_end, 3),
-                "text": sentence
+                "text": sentence,
+                "speaker": speaker
             })
 
             # Update the start for the next sentence
@@ -54,6 +58,7 @@ def split_text(input_data,
             sentence_start = i + 1
 
     return output_data
+
 def adjust_audio_length(wav, src_path, dst_path,  desired_length: float, sample_rate: int = 24000) -> np.ndarray:
     """Adjust the length of the audio.
 
@@ -66,7 +71,7 @@ def adjust_audio_length(wav, src_path, dst_path,  desired_length: float, sample_
         np.ndarray: Waveform with adjusted length.
     """
     current_length = wav.shape[0] / sample_rate
-    speed_factor = max(min(desired_length / current_length, 1.1), 0.7)
+    speed_factor = max(min(desired_length / current_length, 1.1), 2/3)
     desired_length = current_length * speed_factor
     stretch_audio(src_path, dst_path, ratio=speed_factor,
                   sample_rate=sample_rate)

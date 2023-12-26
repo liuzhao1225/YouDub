@@ -68,6 +68,8 @@ def replace_audio_ffmpeg(input_video: str, input_audio: str, input_subtitles: st
         tmp = output_path
     commands.append(f'ffmpeg -i "{input_video}" -i "{input_audio}" -vf "subtitles={srt_path}:force_style=\'FontName=Arial,FontSize=20,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2,WrapStyle=2\'" -c:v libx264 -r {fps} -c:a aac -map 0:v:0 -map 1:a:0 "{tmp}" -y'.replace('\\', '/'))
     
+    # commands.append(f'ffmpeg -i "{input_video}" -i "{input_audio}" -c:v libx264 -r {fps} -c:a aac -map 0:v:0 -map 1:a:0 "{tmp}" -y'.replace('\\', '/'))
+    
     if speed_up != 1:
         commands.append(
             f'ffmpeg -i "{tmp}" -vf "setpts={1/speed_up}*PTS" -af "atempo={speed_up}" -c:v libx264 -c:a aac "{output_path}" -y'.replace('\\', '/'))

@@ -1,9 +1,14 @@
 @echo off
 setlocal enabledelayedexpansion
 
-set "_folders=HistoryOfTheUniverse AI_Explained 3b1b ariseffai Be_Smart braintruffle CodeAesthetic domainofscience Fireship Koranos Kurzgsaget PrimerBlobs QuantaScienceChannel SamuelAlbanie1 ScienceClicEN TED_Ed TwoMinutePapers yoshtm z_Others"
+set "_folders="
 
-set "_folders=z_Others"
+FOR /D %%G IN ("F:\YouDub\input\*") DO (
+    SET "_folders=!_folders! %%~nG"
+)
+
+@REM set "_folders=SamuelAlbanie1"
+
 set "input_folders="
 set "output_folders="
 
