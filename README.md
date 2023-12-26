@@ -86,11 +86,17 @@
    python main.py --input_folders /path/to/input --output_folders /path/to/output --diarize
    ```
 
+   如果在从 `huggingface` 下载模型时报错，你可以在 `.env` 文件中添加：
+
+   ```
+   HF_ENDPOINT=https://hf-mirror.com
+   ```
+
 ## 使用步骤
 - 准备需要翻译的视频文件并放置于输入文件夹。
 - 指定输出文件夹以接收处理后的视频。
 - 系统将自动进行语音识别、翻译、声音克隆和视频处理。
-- 
+  
 ## 技术细节
 
 ### AI 语音识别
